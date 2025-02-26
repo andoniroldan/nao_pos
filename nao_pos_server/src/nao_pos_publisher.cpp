@@ -5,37 +5,66 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
+#include "std_msgs/msg/bool.hpp"
 
 using namespace std::chrono_literals;
-
-/* This example creates a subclass of Node and uses std::bind() to register a
- * member function as a callback from the timer. */
 
 class NaoPosPublisher : public rclcpp::Node
 {
 public:
-  NaoPosPublisher() : Node("nao_pos_publisher")
+  NaoPosPublisher() : Node("nao_pos_publisher"), is_walking_(false)
   {
     auto param_desc = rcl_interfaces::msg::ParameterDescriptor{};
     param_desc.description = "This parameter sets the desired pos file to execute";
     this->declare_parameter("pos_file", "only_legs", param_desc);
 
     publisher_ = this->create_publisher<std_msgs::msg::String>("action_req", 10);
+
+    // Suscribirse a /walk_status para saber si el robot está andando
+    subscription_ = this->create_subscription<std_msgs::msg::Bool>(
+      "/walk_status", 10, std::bind(&NaoPosPublisher::walk_status_callback, this, std::placeholders::_1));
+
+    // Esperar a recibir el primer mensaje de /walk_status antes de iniciar el temporizador
+    while (rclcpp::ok() && !received_first_status_) {
+      RCLCPP_INFO(this->get_logger(), "Esperando primer mensaje de /walk_status...");
+      rclcpp::sleep_for(500ms);
+      rclcpp::spin_some(this->get_node_base_interface());
+    }
+
     timer_ = this->create_wall_timer(10000ms, std::bind(&NaoPosPublisher::timer_callback, this));
   }
 
 private:
+  void walk_status_callback(const std_msgs::msg::Bool::SharedPtr msg)
+  {
+    is_walking_ = msg->data;
+    received_first_status_ = true;  // Marcar que hemos recibido el primer estado
+    if (is_walking_) {
+      RCLCPP_INFO(this->get_logger(), "Robot está andando, deteniendo publicación de posiciones.");
+    } else {
+      RCLCPP_INFO(this->get_logger(), "Robot está quieto, reanudando publicación de posiciones.");
+    }
+  }
+
   void timer_callback()
   {
+    if (is_walking_) {
+      RCLCPP_DEBUG(this->get_logger(), "No se publica acción, el robot está andando.");
+      return; // No publicar si el robot está caminando
+    }
+
     std::string file_name = this->get_parameter("pos_file").as_string();
     auto message = std_msgs::msg::String();
     message.data = file_name;
-    RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
+    RCLCPP_INFO(this->get_logger(), "Publicando: '%s'", message.data.c_str());
     publisher_->publish(message);
   }
 
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr subscription_;
+  bool is_walking_;
+  bool received_first_status_ = false;  // Variable para esperar el primer mensaje de /walk_status
 };
 
 int main(int argc, char * argv[])
