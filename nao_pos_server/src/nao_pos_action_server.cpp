@@ -28,6 +28,8 @@
 #include "parser.hpp"
 #include "rclcpp/rclcpp.hpp"
 
+#include "std_msgs/msg/string.hpp"
+
 namespace fs = boost::filesystem;
 
 namespace nao_pos_action_server_ns
@@ -54,6 +56,9 @@ NaoPosActionServer::NaoPosActionServer(const rclcpp::NodeOptions & options)
     std::bind(&NaoPosActionServer::handleGoal, this, std::placeholders::_1, std::placeholders::_2),
     std::bind(&NaoPosActionServer::handleCancel, this, std::placeholders::_1),
     std::bind(&NaoPosActionServer::handleAccepted, this, std::placeholders::_1));
+
+  pub_action_status_ = create_publisher<std_msgs::msg::String>(
+    "/nao_pos_action/status", 10);
 
   RCLCPP_INFO(this->get_logger(), "nao_pos_action_server_node initialized");
 }
@@ -133,7 +138,12 @@ void NaoPosActionServer::calculateEffectorJoints(
     auto result = std::make_shared<nao_pos_interfaces::action::PosPlay::Result>();
     result->success = true;
     goal_handle_->succeed(result);
-    RCLCPP_DEBUG(this->get_logger(), "Pos finished");
+
+    std_msgs::msg::String msg;
+    msg.data = goal_handle_->get_goal()->action_name + " succeeded";
+    pub_action_status_->publish(msg);
+
+    RCLCPP_INFO(this->get_logger(), "Action finished: %s", goal_handle_->get_goal()->action_name.c_str());
     return;
   }
 
@@ -300,6 +310,9 @@ void NaoPosActionServer::handleAccepted(
 {
   std::lock_guard<std::mutex> lock(mutex_);
   RCLCPP_INFO(this->get_logger(), "Starting Pos Action");
+  std_msgs::msg::String status_msg;
+  status_msg.data = "Action started: " + goal_handle->get_goal()->action_name;
+  pub_action_status_->publish(status_msg);
   initial_time_ = rclcpp::Node::now();
   pos_in_action_ = true;
   firstTickSinceActionStarted_ = true;

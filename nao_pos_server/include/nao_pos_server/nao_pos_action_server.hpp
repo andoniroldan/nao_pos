@@ -32,6 +32,8 @@
 #include "nao_pos_interfaces/action/pos_play.hpp"
 #include "nao_pos_server/key_frame.hpp"
 
+#include "std_msgs/msg/string.hpp"
+
 namespace nao_pos_action_server_ns
 {
 
@@ -61,6 +63,8 @@ private:
   rclcpp::Subscription<nao_lola_sensor_msgs::msg::JointPositions>::SharedPtr sub_joint_states_;
   rclcpp::Publisher<nao_lola_command_msgs::msg::JointPositions>::SharedPtr pub_joint_positions_;
   rclcpp::Publisher<nao_lola_command_msgs::msg::JointStiffnesses>::SharedPtr pub_joint_stiffnesses_;
+
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pub_action_status_;
 
   rclcpp_action::Server<nao_pos_interfaces::action::PosPlay>::SharedPtr action_server_;
 
