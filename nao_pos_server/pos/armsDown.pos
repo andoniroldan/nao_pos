@@ -1,0 +1,4 @@
+  HY    HP    LSP   LSR   LEY   LER   LWY   LHYP  LHR   LHP   LKP   LAP   LAR   RHR   RHP   RKP   RAP   RAR   RSP   RSR   REY   RER   RWY   LH    RH    DUR
+! -     -     10     0    -     -     -     -     -       -    -      -   -     -       -     -     -   -     10      0   -     -     -     -     -     1000      
+! -     -     45    40    -     -     -     -     -       -    -      -   -     -       -     -     -   -     45    -40   -     -     -     -     -      500      
+! -     -     90    10    -     -     -     -     -       -    -      -   -     -       -     -     -   -     90    -10   -     -     -     -     -     1000

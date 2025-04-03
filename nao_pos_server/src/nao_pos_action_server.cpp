@@ -39,12 +39,12 @@ NaoPosActionServer::NaoPosActionServer(const rclcpp::NodeOptions & options)
 : rclcpp::Node{"nao_pos_action_server_node", options}, pos_in_action_(false)
 {
   pub_joint_positions_ = create_publisher<nao_lola_command_msgs::msg::JointPositions>(
-    "/effectors/joint_positions", rclcpp::QoS(100).best_effort());
+    "/effectors/joint_positions", rclcpp::SensorDataQoS());
   pub_joint_stiffnesses_ = create_publisher<nao_lola_command_msgs::msg::JointStiffnesses>(
-    "/effectors/joint_stiffnesses", rclcpp::QoS(100).best_effort());
+    "/effectors/joint_stiffnesses", rclcpp::SensorDataQoS());
 
   sub_joint_states_ = create_subscription<nao_lola_sensor_msgs::msg::JointPositions>(
-    "/sensors/joint_positions", rclcpp::QoS(100).best_effort(),
+    "/sensors/joint_positions", rclcpp::SensorDataQoS(),
     [this](nao_lola_sensor_msgs::msg::JointPositions::SharedPtr sensor_joints) {
       if (pos_in_action_) {
         calculateEffectorJoints(*sensor_joints);

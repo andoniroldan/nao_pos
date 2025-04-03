@@ -31,6 +31,16 @@ public:
       rclcpp::spin_some(this->get_node_base_interface());
     }
 
+    delay_completed_ = false;
+
+    // Start a timer for the 20-second delay after receiving the first status (change to 5000ms if working bad)
+    delay_timer_ = this->create_wall_timer(
+      20000ms, [this]() {
+        delay_completed_ = true;
+        RCLCPP_INFO(this->get_logger(), "20-second delay completed. Ready to publish gestures.");
+        delay_timer_->cancel(); // Stop the delay timer after it completes
+      });
+
     timer_ = this->create_wall_timer(2000ms, std::bind(&NaoPosPublisher::timer_callback, this));
   }
 
@@ -48,13 +58,19 @@ private:
 
   void timer_callback()
   {
-    if (is_walking_ && !fist_time_) {
+
+    if (!delay_completed_) {
+      RCLCPP_DEBUG(this->get_logger(), "Waiting for the initial 5-second delay to complete.");
+      return; // Do not publish until the delay is completed
+    }
+
+    if (is_walking_ && !first_time_) {
       RCLCPP_DEBUG(this->get_logger(), "No action published, the robot is walking.");
       return; // Do not publish if the robot is walking
     }
 
-    if (fist_time_) {
-      fist_time_ = false;
+    if (first_time_) {
+      first_time_ = false;
     }
 
     std::string file_name = this->get_parameter("pos_file").as_string();
@@ -69,7 +85,9 @@ private:
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr subscription_;
   bool is_walking_;
   bool received_first_status_ = false;  // Variable to wait for the first message from /walk_status
-  bool fist_time_ = true;
+  bool first_time_ = true;
+  bool delay_completed_;
+  rclcpp::TimerBase::SharedPtr delay_timer_;
 };
 
 int main(int argc, char * argv[])
