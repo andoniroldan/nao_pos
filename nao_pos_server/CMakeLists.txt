@@ -77,7 +77,6 @@ install(
   DESTINATION share/${PROJECT_NAME}/pos/
 )
 
-
 # ################ NAO_POS_ACTION_CLIENT ####################
 add_library(nao_pos_client SHARED
   src/nao_pos_action_client.cpp)
